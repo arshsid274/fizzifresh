@@ -1,9 +1,12 @@
 "use client";
 
 import { useGLTF, useTexture } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { useMemo } from "react";
 import {
   Box3,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   Mesh,
   MeshStandardMaterial,
   SRGBColorSpace,
@@ -28,13 +31,21 @@ export type SodaCanProps = {
 
 export function SodaCan({ scale = 4, ...props }: SodaCanProps) {
   const { scene } = useGLTF("/model.glb");
+  const gl = useThree((s) => s.gl);
   // Every box renders the apple package label; flavor prop is accepted for
   // API compatibility with existing callsites but intentionally ignored.
-  const label = useTexture("/labels/apple%20package.png");
+  const label = useTexture("/labels/apple_package_white_top.png");
 
   const cloned = useMemo(() => {
     label.flipY = false;
     label.colorSpace = SRGBColorSpace;
+    // Sharpen the label: max anisotropic filtering + trilinear mipmaps so
+    // the artwork stays crisp at glancing angles and at any distance.
+    label.anisotropy = gl.capabilities.getMaxAnisotropy();
+    label.minFilter = LinearMipmapLinearFilter;
+    label.magFilter = LinearFilter;
+    label.generateMipmaps = true;
+    label.needsUpdate = true;
 
     const c = scene.clone(true);
     const box = new Box3().setFromObject(c);
@@ -53,7 +64,7 @@ export function SodaCan({ scale = 4, ...props }: SodaCanProps) {
     });
 
     return c;
-  }, [scene, label]);
+  }, [scene, label, gl]);
 
   return (
     <group {...props} dispose={null} scale={scale} rotation={[0, Math.PI / 2, 0]}>
