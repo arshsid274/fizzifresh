@@ -29,18 +29,27 @@ export type SodaCanProps = {
   scale?: number;
 };
 
-export function SodaCan({ scale = 4, ...props }: SodaCanProps) {
+export function SodaCan({ flavor, scale = 4, ...props }: SodaCanProps) {
   const { scene } = useGLTF("/model.glb");
   const gl = useThree((s) => s.gl);
-  // Every box renders the apple package label; flavor prop is accepted for
-  // API compatibility with existing callsites but intentionally ignored.
-  const label = useTexture("/labels/apple_package_white_top.png");
+  const labels = useTexture({
+    apple: "/labels/apple_package_white_top.png",
+    cocktail: "/labels/cocktail_white_top.png",
+    pineapple: "/labels/pineapple_white_top.png",
+    guava: "/labels/guava_white_top.png",
+  });
+  const label =
+    flavor === "lemonLime"
+      ? labels.cocktail
+      : flavor === "grape"
+        ? labels.pineapple
+        : flavor === "blackCherry"
+          ? labels.guava
+          : labels.apple;
 
   const cloned = useMemo(() => {
     label.flipY = false;
     label.colorSpace = SRGBColorSpace;
-    // Sharpen the label: max anisotropic filtering + trilinear mipmaps so
-    // the artwork stays crisp at glancing angles and at any distance.
     label.anisotropy = gl.capabilities.getMaxAnisotropy();
     label.minFilter = LinearMipmapLinearFilter;
     label.magFilter = LinearFilter;
